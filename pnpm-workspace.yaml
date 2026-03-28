@@ -1,0 +1,5 @@
+# pnpm workspace 配置
+# 定义 monorepo 中的子项目
+packages:
+  - "exia-fgui"
+  - "exia-assets"
