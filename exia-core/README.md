@@ -1,4 +1,4 @@
-# bit-core
+# exia-core
 
 Exia Framework 的核心库，为 Cocos Creator 3.8+ 游戏开发提供基础功能支持。
 
