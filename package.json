@@ -7,8 +7,15 @@
     "build:assets": "pnpm --filter @xiacg/exia-assets build",
     "build:core": "pnpm --filter @xiacg/exia-core build",
     "build:event": "pnpm --filter @xiacg/exia-event build",
-    "build:all": "pnpm build:core && pnpm build:assets && pnpm build:event && pnpm copy:dts",
-    "copy:dts": "cp exia-core/dist/exia-core.d.ts exia-assets/dist/exia-assets.d.ts exia-event/dist/exia-event.d.ts /Users/xiacg/Documents/game/exia-lib/exia-framework-mcp/dts/framework/"
+    "build:ui": "pnpm --filter @xiacg/exia-ui build",
+    "build:net": "pnpm --filter @xiacg/exia-net build",
+    "build:all": "pnpm build:core && pnpm build:assets && pnpm build:event && pnpm build:ui && pnpm build:net && pnpm copy:dts",
+    "copy:dts": "cp exia-core/dist/exia-core.d.ts exia-assets/dist/exia-assets.d.ts exia-event/dist/exia-event.d.ts exia-ui/dist/exia-ui.d.ts exia-net/dist/exia-net.d.ts /Users/xiacg/Documents/game/exia-lib/exia-framework-mcp/dts/framework/",
+    "publish:core": "pnpm --filter @xiacg/exia-core publish",
+    "publish:assets": "pnpm --filter @xiacg/exia-assets publish",
+    "publish:event": "pnpm --filter @xiacg/exia-event publish",
+    "publish:ui": "pnpm --filter @xiacg/exia-ui publish",
+    "publish:net": "pnpm --filter @xiacg/exia-net publish"
   },
   "keywords": [
     "exia-framework",

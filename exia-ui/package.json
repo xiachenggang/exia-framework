@@ -1,0 +1,42 @@
+{
+  "name": "@xiacg/exia-ui",
+  "version": "1.0.0",
+  "description": "基于creator3.0+的exia-ui库",
+  "main": "./dist/exia-ui.cjs",
+  "module": "./dist/exia-ui.mjs",
+  "types": "./dist/exia-ui.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/exia-ui.cjs",
+      "import": "./dist/exia-ui.mjs",
+      "types": "./dist/exia-ui.d.ts",
+      "default": "./dist/exia-ui.cjs"
+    },
+    "./min": {
+      "require": "./dist/exia-ui.min.cjs",
+      "import": "./dist/exia-ui.min.mjs"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm clean && rollup -c rollup.config.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "xiacg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiachenggang/exia-framework.git",
+    "directory": "exia-assets"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "dependencies": {
+    "@xiacg/exia-core": "workspace:*",
+    "fairygui-cc": "^1.2.2"
+  }
+}

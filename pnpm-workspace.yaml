@@ -4,3 +4,5 @@ packages:
   - "exia-assets"
   - "exia-core"
   - "exia-event"
+  - "exia-ui"
+  - "exia-net"
