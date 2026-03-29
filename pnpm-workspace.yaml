@@ -3,3 +3,4 @@
 packages:
   - "exia-assets"
   - "exia-core"
+  - "exia-event"

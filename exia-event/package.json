@@ -1,0 +1,38 @@
+{
+  "name": "@xiacg/exia-event",
+  "version": "1.0.0",
+  "description": "轻量级事件系统，提供全局事件管理和模块间通信",
+  "main": "./dist/exia-event.cjs",
+  "module": "./dist/exia-event.mjs",
+  "types": "./dist/exia-event.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/exia-event.cjs",
+      "import": "./dist/exia-event.mjs",
+      "types": "./dist/exia-event.d.ts",
+      "default": "./dist/exia-event.cjs"
+    },
+    "./min": {
+      "require": "./dist/exia-event.min.cjs",
+      "import": "./dist/exia-event.min.mjs"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && rollup -c rollup.config.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "xiacg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiachenggang/exia-framework.git",
+    "directory": "exia-event"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}
