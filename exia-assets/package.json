@@ -1,13 +1,36 @@
 {
-  "name": "exia-assets",
+  "name": "@xiacg/exia-assets",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "基于creator3.8.8+的exia-assets库",
+  "main": "./dist/exia-assets.cjs",
+  "module": "./dist/exia-assets.mjs",
+  "types": "./dist/exia-assets.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/exia-assets.cjs",
+      "import": "./dist/exia-assets.mjs",
+      "types": "./dist/exia-assets.d.ts",
+      "default": "./dist/exia-assets.cjs"
+    },
+    "./min": {
+      "require": "./dist/exia-assets.min.cjs",
+      "import": "./dist/exia-assets.min.mjs"
+    }
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && rollup -c rollup.config.mjs"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "author": "xiacg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiachenggang/exia-framework.git",
+    "directory": "exia-assets"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
 }

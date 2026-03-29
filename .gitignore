@@ -1,0 +1,17 @@
+# 操作系统
+**/.DS_Store
+# 编辑器
+**/.vscode/
+# 依赖
+**/node_modules/
+
+
+# Lock 文件（根据团队需求选择）
+package-lock.json
+
+# pnpm lock 文件建议提交，保证依赖一致性
+# pnpm-lock.yaml  
+
+
+
+
