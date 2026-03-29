@@ -21,7 +21,9 @@
     "clean": "rm -rf dist",
     "build": "pnpm run clean && rollup -c rollup.config.mjs"
   },
-  "keywords": [],
+  "files": [
+    "dist"
+  ],
   "author": "xiacg",
   "license": "MIT",
   "repository": {

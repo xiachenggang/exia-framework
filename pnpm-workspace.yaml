@@ -2,3 +2,4 @@
 # 定义 monorepo 中的子项目
 packages:
   - "exia-assets"
+  - "exia-core"

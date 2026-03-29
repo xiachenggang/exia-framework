@@ -65,7 +65,7 @@ npm install @xiacg/exia-assets
 1. 进入战斗场景时，使用 `new AssetLoader("battle")` 加载所有战斗资源
 2. 退出战斗场景时，调用 `AssetPool.releaseBatchAssets("battle")` 一键释放所有资源
 
-详细 API 请查看 `bit-assets.d.ts` 类型定义文件。
+详细 API 请查看 `exia-assets.d.ts` 类型定义文件。
 
 ## 许可证
 

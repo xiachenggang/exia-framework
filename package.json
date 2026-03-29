@@ -4,7 +4,10 @@
   "private": true,
   "description": "exia-framework monorepo - Cocos Creator 游戏框架",
   "scripts": {
-    "build:assets": "pnpm --filter @xiacg/exia-assets build"
+    "build:assets": "pnpm --filter @xiacg/exia-assets build",
+    "build:core": "pnpm --filter @xiacg/exia-core build",
+    "build:all": "pnpm build:core && pnpm build:assets && pnpm copy:dts",
+    "copy:dts": "cp exia-core/dist/exia-core.d.ts exia-assets/dist/exia-assets.d.ts /Users/xiacg/Documents/game/exia-lib/exia-framework-mcp/dts/framework/"
   },
   "keywords": [
     "exia-framework",
