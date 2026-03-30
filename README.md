@@ -161,9 +161,9 @@ pnpm publish:ui
 
 ###
 
-### 演示项目
+### 脚手架项目
 
-`demo` 文件夹包含完整的 Cocos Creator 3.8.x 示例项目，展示了各模块的实际使用方法。
+- [Cocos Creator 3.8.x 游戏架构脚手架项目](https://github.com/xiachenggang/exia-framework-game.git)
 
 ## 🔧 常见问题
 
