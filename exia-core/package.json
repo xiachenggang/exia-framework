@@ -19,8 +19,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "pnpm run clean && rollup -c rollup.config.mjs",
-    "publish": "pnpm run publish"
+    "build": "pnpm run clean && rollup -c rollup.config.mjs"
   },
   "files": [
     "dist"
