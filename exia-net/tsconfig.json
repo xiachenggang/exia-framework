@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "target": "ES2015",
+    "types": [
+      "@cocos/creator-types/engine",
+      "./libs/lib.wx.api.d.ts"
+    ]
+  },
+  "include": [
+    "./src/**/*"
+  ]
+}

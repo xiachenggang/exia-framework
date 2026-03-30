@@ -29,7 +29,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/xiachenggang/exia-framework.git",
-    "directory": "exia-assets"
+    "directory": "exia-ui"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

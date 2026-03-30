@@ -1,13 +1,39 @@
 {
-  "name": "exia-net",
+  "name": "@xiacg/exia-net",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "网络相关库",
+  "main": "./dist/exia-net.cjs",
+  "module": "./dist/exia-net.mjs",
+  "types": "./dist/exia-net.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/exia-net.cjs",
+      "import": "./dist/exia-net.mjs",
+      "types": "./dist/exia-net.d.ts",
+      "default": "./dist/exia-net.cjs"
+    },
+    "./min": {
+      "require": "./dist/exia-net.min.cjs",
+      "import": "./dist/exia-net.min.mjs"
+    }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.33.0"
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm clean && rollup -c rollup.config.mjs"
+  },
+  "files": [
+    "dist",
+    "libs/lib.wx.api.d.ts"
+  ],
+  "author": "xiacg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiachenggang/exia-framework.git",
+    "directory": "exia-net"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
 }
