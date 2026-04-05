@@ -100,7 +100,6 @@ npm install @xiacg/exia-core
 - `platform` - 当前平台类型
 - `isNative` / `isMobile` / `isNativeMobile` - 平台分类
 - `isAndroid` / `isIOS` / `isHarmonyOS` - 原生平台判断
-- `isWX` / `isAlipay` / `isBytedance` / `isHuaweiQuick` - 小游戏判断
 - `isBrowser` - 浏览器判断
 - `deviceId` - 设备 ID
 
