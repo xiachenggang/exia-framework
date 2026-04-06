@@ -85,11 +85,11 @@ npm install @xiacg/exia-core
 # 安装 UI 模块
 npm install @xiacg/exia-ui
 
-# 安装 ECS 模块
-npm install @xiacg/exia-ecs
+# 安装 event 模块
+npm install @xiacg/exia-event
 
 # 或一次性安装多个模块
-npm install @xiacg/exia-core @xiacg/exia-ui @xiacg/exia-net @xiacg/exia-ecs @xiacg/exia-assets
+npm install @xiacg/exia-core @xiacg/exia-ui @xiacg/exia-net @xiacg/exia-event @xiacg/exia-assets
 ```
 
 ### 方式二：本地开发此框架
