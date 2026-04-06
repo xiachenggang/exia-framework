@@ -5,6 +5,7 @@ import { WindowGroup } from "../core/WindowGroup";
 import { WindowManager } from "../core/WindowManager";
 const { ccclass, property, menu } = _decorator;
 @ccclass("CocosWindowContainer")
+@menu("exia/UIContainer")
 export class CocosWindowContainer extends Component {
   @property({
     displayName: "忽略顶部窗口查询",

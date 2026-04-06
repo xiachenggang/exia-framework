@@ -13,6 +13,7 @@ import { CocosWindowContainer } from "./CocosWindowContainer";
 const { ccclass, menu, property } = _decorator;
 
 @ccclass("UIModule")
+@menu("exia/UIIModule")
 export class UIModule extends Module {
   @property({
     type: JsonAsset,
