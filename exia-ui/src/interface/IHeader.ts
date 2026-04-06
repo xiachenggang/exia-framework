@@ -1,0 +1,46 @@
+import { AdapterType } from "./type";
+
+/**
+ * @Description: 窗口顶边资源栏
+ */
+export interface IHeader<T = any> {
+  /** 资源栏名称 */
+  name: string;
+  /** 窗口适配类型 */
+  adapterType: AdapterType;
+  /**
+   * 初始化
+   * @internal
+   */
+  _init(): void;
+
+  /**
+   * 关闭
+   * @internal
+   */
+  _close(): void;
+
+  /**
+   * 窗口适配
+   * @internal
+   */
+  _adapted(): void;
+
+  /**
+   * 显示
+   * @param userdata 用户数据
+   * @internal
+   */
+  _show(userdata: T): void;
+
+  /**
+   * 隐藏
+   * @internal
+   */
+  _hide(): void;
+
+  /**
+   * 是否显示中
+   */
+  isShowing(): boolean;
+}
