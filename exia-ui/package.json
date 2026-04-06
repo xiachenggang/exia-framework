@@ -36,7 +36,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@xiacg/exia-core": "^1.0.0",
+    "@xiacg/exia-core": "^1.0.1",
     "fairygui-cc": "^1.2.2"
   }
 }
