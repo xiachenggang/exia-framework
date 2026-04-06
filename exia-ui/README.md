@@ -30,7 +30,7 @@ npm install @xiacg/exia-ui
 
 提供专业的 FairyGUI 配置编辑器，支持快速配置和导出。
 
-**下载地址**：[Cocos Store - kunpo-fgui](https://store.cocos.com/app/detail/7213)
+**下载地址**：[cocos fgui editor plugin]()
 
 ## 使用说明
 
