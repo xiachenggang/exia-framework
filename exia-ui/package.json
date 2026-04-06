@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-ui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "基于creator3.8.8+的exia-ui库",
   "main": "./dist/exia-ui.cjs",
   "module": "./dist/exia-ui.mjs",
