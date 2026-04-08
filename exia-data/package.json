@@ -1,0 +1,38 @@
+{
+  "name": "@xiacg/exia-data",
+  "version": "1.0.2",
+  "description": "轻量级数据系统，提供全局数据管理和数据组件",
+  "main": "./dist/exia-data.cjs",
+  "module": "./dist/exia-data.mjs",
+  "types": "./dist/exia-data.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/exia-data.cjs",
+      "import": "./dist/exia-data.mjs",
+      "types": "./dist/exia-data.d.ts",
+      "default": "./dist/exia-data.cjs"
+    },
+    "./min": {
+      "require": "./dist/exia-data.min.cjs",
+      "import": "./dist/exia-data.min.mjs"
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && rollup -c rollup.config.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "author": "xiacg",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiachenggang/exia-framework.git",
+    "directory": "exia-data"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  }
+}

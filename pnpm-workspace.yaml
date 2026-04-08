@@ -7,3 +7,4 @@ packages:
   - "exia-fgui"
   - "exia-net"
   - "exia-ccui"
+  - "exia-data"

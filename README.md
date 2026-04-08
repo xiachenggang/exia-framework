@@ -9,7 +9,7 @@ exia-framework monorepo - Cocos Creator 游戏框架
 
 ## ✨ 特性
 
-- 🎯 **模块化设计** - 5 个独立模块，按需使用
+- 🎯 **模块化设计** - 7 个独立模块，按需使用
 - 📦 **Monorepo 架构** - 统一管理，独立发布
 - 💪 **TypeScript** - 完整的类型定义和智能提示
 - 🚀 **高性能** - 优化的数据结构和算法
@@ -18,7 +18,7 @@ exia-framework monorepo - Cocos Creator 游戏框架
 
 ## 📦 模块总览
 
-Exia Framework 包含 5 个核心模块，分为 5 大类别：
+Exia Framework 包含 7 个核心模块，分为 5 大类别：
 
 ### 🏗️ 核心模块
 
@@ -28,9 +28,9 @@ Exia Framework 包含 5 个核心模块，分为 5 大类别：
 
 ### 🎨 UI 模块
 
-| 模块          | npm 包名                                                         | 描述                                | 文档                             |
-| ----------- | -------------------------------------------------------------- | --------------------------------- | ------------------------------ |
-| **exia-fgui** | [@xiacg/exia-fgui](https://www.npmjs.com/package/@xiacg/exia-fgui) | 基于 FairyGUI 的 UI 管理系统，支持窗口管理、装饰器等 | [R EADME](./exia-fgui/README.md) |
+| 模块            | npm 包名                                                             | 描述                                     | 文档                               |
+| ------------- | ------------------------------------------------------------------ | -------------------------------------- | -------------------------------- |
+| **exia-fgui** | [@xiacg/exia-fgui](https://www.npmjs.com/package/@xiacg/exia-fgui) | 基于 FairyGUI 的 UI 管理系统，支持窗口管理、装饰器等      | [R EADME](./exia-fgui/README.md) |
 | **exia-ccui** | [@xiacg/exia-ccui](https://www.npmjs.com/package/@xiacg/exia-ccui) | 基于 Cocos Creator 的 UI 管理系统，支持窗口管理、装饰器等 | [R EADME](./exia-ccui/README.md) |
 
 ### 🎮 游戏架构模块
@@ -38,6 +38,7 @@ Exia Framework 包含 5 个核心模块，分为 5 大类别：
 | 模块             | npm 包名                                                               | 描述                 | 文档                               |
 | -------------- | -------------------------------------------------------------------- | ------------------ | -------------------------------- |
 | **exia-event** | [@xiacg/exia-event](https://www.npmjs.com/package/@xiacg/exia-event) | 全局事件系统，支持优先级、批量操作等 | [README](./exia-event/README.md) |
+| **exia-data**  | [@xiacg/exia-data](https://www.npmjs.com/package/@xiacg/exia-data)   | 数据管理，支持组件装饰器、自主刷新等 | [README](./exia-data/README.md)  |
 
 ### 🌐 网络与资源模块
 
@@ -66,6 +67,7 @@ graph LR
     CCUI[exia-ccui] --> Core
     Net[exia-net]
     Assets[exia-assets]
+    Data[exia-data]
 ```
 
 ## 🚀 快速开始
