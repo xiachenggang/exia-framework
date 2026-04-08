@@ -11,9 +11,10 @@ export { Socket } from "./socket/Socket";
 export { Ws } from "./socket/Ws";
 /** WebSocket消息编码器 */
 export { WsPacker } from "./socket/WsPacker";
+/** WebSocket接受数据 */
+export { WsData } from "./socket/ISocket";
 /** WebSocket消息结构 */
 export { Message } from "./socket/WsPacker";
-
 /** 读取网络文件 */
 export { ReadNetFile } from "./nettools/ReadNetFile";
 /** 加密 */
