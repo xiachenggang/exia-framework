@@ -1,10 +1,10 @@
-# exia-ui
+# exia-ccui
 
-基于 FairyGUI 的 UI 管理系统，提供灵活的窗口管理和装饰器支持。
+基于 creator3.8.8 的 ui 库，提供灵活的窗口管理和装饰器支持。
 
 ## 简介
 
-`exia-ui` 是基于 FairyGUI 的 UI 管理库，提供窗口生命周期管理、资源自动加载、多窗口组管理等功能。支持配套的可视化编辑器一键导出界面配置。
+`exia-ccui` 是基于 creator3.8.8 的 ui库，提供窗口生命周期管理、资源自动加载、多窗口组管理等功能。支持配套的可视化编辑器一键导出界面配置。
 
 **核心特性**：
 
@@ -14,23 +14,17 @@
 - 🎯 窗口间关系控制（隐藏/关闭前一个界面）
 - 🎪 多窗口组管理
 - 📊 Header 资源栏复用
-- 🖥️ 配套可视化编辑器（付费插件）
+- 🖥️ 配套可视化编辑器（插件）
 
 **依赖**：
 
-- FairyGUI - [官方文档](https://www.fairygui.com/docs/editor)
+- creator3.8.8 - [官方文档](https://docs.cocos.com/creator/3.8/manual/zh/)
 
 ## 安装
 
 ```bash
-npm install @xiacg/exia-ui  
+npm install @xiacg/exia-ccui  
 ```
-
-## 可视化编辑器
-
-提供专业的 FairyGUI 配置编辑器，支持快速配置和导出。
-
-**下载地址**：[cocos fgui editor plugin]()
 
 ## 使用说明
 
@@ -42,7 +36,7 @@ npm install @xiacg/exia-ui
 
 - `@uiclass(groupName, pkgName, name, inlinePkgs?)` - 注册窗口类
   - `groupName` - 窗口组名称
-  - `pkgName` - FairyGUI 包名
+  - `pkgName` - cocos creator 包名
   - `name` - 组件名（必须和类名相同）
   - `inlinePkgs` - 内联的包名（可选，当前界面引用其他包资源时使用）
 
@@ -57,9 +51,9 @@ npm install @xiacg/exia-ui
 
 **属性装饰器**：
 
-- `@uiprop` - 标记 FairyGUI 组件属性（按钮、文本、列表等）
-- `@uicontrol` - 标记 FairyGUI 控制器
-- `@uitransition` - 标记 FairyGUI 动画
+- `@uiprop` - 标记 cocos creator 组件属性（按钮、文本、列表等）
+- `@uicontrol` - 标记 cocos creator 控制器
+- `@uitransition` - 标记 cocos creator 动画
 
 **事件装饰器**：
 
@@ -145,18 +139,18 @@ npm install @xiacg/exia-ui
 
 ### 典型使用流程
 
-1. **FairyGUI 设计** - 使用 FairyGUI 编辑器设计界面
+1. **CococCreatorUI 设计** - 使用 CococCreator 编辑器设计界面
 2. **定义窗口类** - 继承 Window 并使用 @uiclass 装饰器注册
 3. **配置属性和事件** - 使用 @uiprop 和 @uiclick 标记
 4. **配置加载回调** - 调用 `WindowManager.setPackageCallbacks()`（可选）
 5. **打开窗口** - 调用 `WindowManager.showWindow(MyWindow, userdata)`
 6. **管理生命周期** - 实现窗口生命周期方法
 
-详细 API 请查看 `exia-ui.d.ts` 类型定义文件和 FairyGUI 官方文档。
+详细 API 请查看 `exia-ccui.d.ts` 类型定义文件和 CococCreator 官方文档。
 
 ## 依赖
 
-- [FairyGUI](https://www.fairygui.com/) - UI 编辑器和运行时库
+- [creator3.8.8](https://docs.cocos.com/creator/3.8/manual/zh/) - UI 编辑器
 
 ## 许可证
 
@@ -170,4 +164,4 @@ MIT License
 ## 源码仓库
 
 - [GitHub](https://github.com/xiachenggang/exia-framework.git)
-- [npm](https://www.npmjs.com/package/@xiacg/exia-ui)
+- [npm](https://www.npmjs.com/package/@xiacg/exia-ccui)

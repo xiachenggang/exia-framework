@@ -1,20 +1,20 @@
 {
-  "name": "@xiacg/exia-ui",
+  "name": "@xiacg/exia-fgui",
   "version": "1.0.1",
-  "description": "基于creator3.8.8+的exia-ui库",
-  "main": "./dist/exia-ui.cjs",
-  "module": "./dist/exia-ui.mjs",
-  "types": "./dist/exia-ui.d.ts",
+  "description": "基于creator3.8.8+的exia-fgui库",
+  "main": "./dist/exia-fgui.cjs",
+  "module": "./dist/exia-fgui.mjs",
+  "types": "./dist/exia-fgui.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/exia-ui.cjs",
-      "import": "./dist/exia-ui.mjs",
-      "types": "./dist/exia-ui.d.ts",
-      "default": "./dist/exia-ui.cjs"
+      "require": "./dist/exia-fgui.cjs",
+      "import": "./dist/exia-fgui.mjs",
+      "types": "./dist/exia-fgui.d.ts",
+      "default": "./dist/exia-fgui.cjs"
     },
     "./min": {
-      "require": "./dist/exia-ui.min.cjs",
-      "import": "./dist/exia-ui.min.mjs"
+      "require": "./dist/exia-fgui.min.cjs",
+      "import": "./dist/exia-fgui.min.mjs"
     }
   },
   "scripts": {
@@ -29,7 +29,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/xiachenggang/exia-framework.git",
-    "directory": "exia-ui"
+    "directory": "exia-fgui"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",

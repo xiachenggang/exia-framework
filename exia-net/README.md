@@ -9,7 +9,7 @@
 **核心特性**：
 
 - 🌐 **HTTP 模块** - 封装 XMLHttpRequest，支持 POST/GET/PUT/HEAD 等方法
-- 🔌 **WebSocket 模块** - 统一的 Socket 接口，兼容各平台
+- 🔌 **Socket 模块** - 统一的 Socket 接口，兼容各平台
 - 📡 支持 JSON、文本、二进制数据传输
 - ⚡ 请求超时控制和错误处理
 - 🎯 全局事件和回调两种响应方式
@@ -50,13 +50,13 @@ npm install @xiacg/exia-net
 - `IHttpResponse` - 响应数据接口
 - `IHttpEvent` - 请求事件接口
 
-### WebSocket 模块 (Socket)
+### Socket 模块 (Socket)
 
-提供统一的 WebSocket 接口，兼容浏览器、原生平台和小游戏平台。
+提供统一的 Socket 接口，兼容浏览器、原生平台和小游戏平台。
 
 **主要功能**：
 
-- `new Socket(url, options)` - 创建 WebSocket 连接
+- `new Socket(url, options)` - 创建 Socket 连接
 - `send(data)` - 发送字符串消息
 - `sendBuffer(buffer)` - 发送二进制数据（常用于 ProtoBuf）
 - `close(code, reason)` - 关闭连接
@@ -71,6 +71,41 @@ npm install @xiacg/exia-net
 **配置选项**：
 
 - `binaryType` - 二进制数据类型（`'arraybuffer'` | `'blob'`）
+
+### WebSocket 模块 (Socket)
+
+提供统一的 WebSocket 接口，仅支持浏览器。
+
+**主要功能**：
+
+- `connect(url, port)` - 创建 WebSocket 连接
+- `send(data)` - 发送string | Blob | ArrayBufferView | ArrayBuffer 数据
+- `sendBuffer(cmd, buffer, key)` - 发送带有自定义头数据（常用于 ProtoBuf）
+- `close(code, reason)` - 关闭连接
+
+**参数**：
+
+- `url` - WebSocket 服务器地址
+- `port` - WebSocket 服务器端口（可选）
+
+- `cmd` - 命令字符串（可选）
+- `data` - 数据二进制缓冲区（可选）
+- `key` - 键字符串（可选）
+
+**事件监听**：
+
+- `onConnected` - 连接成功回调
+- `onMessage` - 接收消息回调
+- `onClosed` - 连接关闭回调
+- `onError` - 连接错误回调
+
+**消息体结构**：
+
+- `Message` - 消息体结构
+
+**事件回调参数**：
+
+- `msg` - 收到的消息体（包含 `cmd`、`data`、`key`）
 
 详细 API 请查看 `exia-net.d.ts` 类型定义文件。
 

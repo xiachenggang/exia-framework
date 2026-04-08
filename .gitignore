@@ -5,6 +5,9 @@
 # 依赖
 **/node_modules/
 
+# claude
+**/.claude/worktrees/clever-hodgkin
+
 
 # Lock 文件（根据团队需求选择）
 package-lock.json

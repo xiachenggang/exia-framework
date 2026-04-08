@@ -30,7 +30,8 @@ Exia Framework 包含 5 个核心模块，分为 5 大类别：
 
 | 模块          | npm 包名                                                         | 描述                                | 文档                             |
 | ----------- | -------------------------------------------------------------- | --------------------------------- | ------------------------------ |
-| **exia-ui** | [@xiacg/exia-ui](https://www.npmjs.com/package/@xiacg/exia-ui) | 基于 FairyGUI 的 UI 管理系统，支持窗口管理、装饰器等 | [R EADME](./exia-ui/README.md) |
+| **exia-fgui** | [@xiacg/exia-fgui](https://www.npmjs.com/package/@xiacg/exia-fgui) | 基于 FairyGUI 的 UI 管理系统，支持窗口管理、装饰器等 | [R EADME](./exia-fgui/README.md) |
+| **exia-ccui** | [@xiacg/exia-ccui](https://www.npmjs.com/package/@xiacg/exia-ccui) | 基于 Cocos Creator 的 UI 管理系统，支持窗口管理、装饰器等 | [R EADME](./exia-ccui/README.md) |
 
 ### 🎮 游戏架构模块
 
@@ -61,7 +62,8 @@ Exia Framework 包含 5 个核心模块，分为 5 大类别：
 ```mermaid
 graph LR
     Core[exia-core]
-    UI[exia-ui] --> Core
+    FGUI[exia-fgui] --> Core
+    CCUI[exia-ccui] --> Core
     Net[exia-net]
     Assets[exia-assets]
 ```
@@ -82,14 +84,16 @@ graph LR
 # 安装核心模块
 npm install @xiacg/exia-core
 
-# 安装 UI 模块
-npm install @xiacg/exia-ui
+# 安装 fgui 模块
+npm install @xiacg/exia-fgui
+# 安装 ccui 模块
+npm install @xiacg/exia-ccui
 
 # 安装 event 模块
 npm install @xiacg/exia-event
 
 # 或一次性安装多个模块
-npm install @xiacg/exia-core @xiacg/exia-ui @xiacg/exia-net @xiacg/exia-event @xiacg/exia-assets
+npm install @xiacg/exia-core @xiacg/exia-fgui @xiacg/exia-ccui @xiacg/exia-net @xiacg/exia-event @xiacg/exia-assets
 ```
 
 ### 方式二：本地开发此框架
@@ -150,8 +154,8 @@ pnpm version:major
 # 发布 bit-core
 pnpm publish:core
 
-# 发布 bit-ui
-pnpm publish:ui
+# 发布 bit-fgui
+pnpm publish:fgui
 
 # 注意：发布前需要：
 # 1. 确保已登录 npm: npm login
@@ -171,7 +175,8 @@ pnpm publish:ui
 
 A: 部分模块有依赖关系：
 
-- `exia-ui` 依赖 `exia-core`
+- `exia-fgui` 依赖 `exia-core`
+- `exia-ccui` 依赖 `exia-core`
 
 其他模块都是独立的，可以单独使用。
 
