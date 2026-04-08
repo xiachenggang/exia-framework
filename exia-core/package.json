@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "基于creator3.8.8+的exia-core库",
   "main": "./dist/exia-core.cjs",
   "module": "./dist/exia-core.mjs",

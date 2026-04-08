@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-event",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "轻量级事件系统，提供全局事件管理和模块间通信",
   "main": "./dist/exia-event.cjs",
   "module": "./dist/exia-event.mjs",
