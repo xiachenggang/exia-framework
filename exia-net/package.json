@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-net",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "网络相关库",
   "main": "./dist/exia-net.cjs",
   "module": "./dist/exia-net.mjs",
