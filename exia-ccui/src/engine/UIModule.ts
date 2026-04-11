@@ -41,7 +41,7 @@ export class UIModule extends Module {
     // ── 创建全局 UI 根节点 ──────────────────────
     const uiRoot = new Node("UIRoot");
     uiRoot.layer = this.node.layer; // 继承父节点 layer（通常是 UI_2D）
-    this.node.scene.addChild(uiRoot);
+    this.node.scene.getChildByName("Canvas").addChild(uiRoot);
 
     const uiRootTf = uiRoot.addComponent(UITransform);
     const visSize = view.getVisibleSize();

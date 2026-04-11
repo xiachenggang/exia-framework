@@ -1,5 +1,10 @@
 /**
  * @Description: 窗口组
+ *
+ * 改动：_createWindow 支持自动挂载脚本
+ *  - 若预制体根节点已挂载 WindowBase 子类组件 → 沿用（兼容旧流程）
+ *  - 若未挂载 → 用 InfoPool 中记录的 ctor 动态 addComponent
+ *    这样预制体可以是"纯美术节点树"，脚本完全由代码管理，不依赖编辑器手动挂载
  */
 
 import { instantiate, Node } from "cc";
@@ -82,27 +87,41 @@ export class WindowGroup {
   }
 
   // ─────────────────────────────────────────────
-  //  内部：创建窗口
+  //  内部：创建窗口（核心改动在此）
   // ─────────────────────────────────────────────
 
-  /**
-   * 从已加载的 Prefab 实例化窗口，挂载到当前组的根节点
-   */
   private _createWindow(name: string): WindowBase {
     const prefab = InfoPool.getCachedPrefab(name);
     if (!prefab)
       throw new Error(`窗口【${name}】预制体未缓存，请先调用 loadWindowRes`);
 
+    const info = InfoPool.get(name);
+
     // ① 实例化预制体
     const windowNode = instantiate(prefab);
     windowNode.name = name;
 
-    // ② 获取 WindowBase 组件（预制体根节点上必须挂载继承自 Window 的组件）
-    const window = windowNode.getComponent(WindowBase);
-    if (!window)
-      throw new Error(`窗口【${name}】预制体根节点未挂载 WindowBase 子类组件`);
+    // ② 获取或自动挂载 WindowBase 子类组件
+    //    旧流程：预制体根节点已在编辑器里挂好脚本 → getComponent 直接拿到
+    //    新流程：纯美术预制体，根节点没有脚本 → 用 ctor 动态 addComponent
+    let window = windowNode.getComponent(WindowBase);
+    if (!window) {
+      if (!info.ctor) {
+        throw new Error(
+          `窗口【${name}】预制体根节点未挂载 WindowBase 子类组件，` +
+            `且 @uiclass 未传入有效的 ctor`,
+        );
+      }
+      window = windowNode.addComponent(info.ctor) as WindowBase;
+      if (!window) {
+        throw new Error(
+          `窗口【${name}】动态 addComponent(${info.ctor?.name}) 失败，` +
+            `请确认该类继承自 WindowBase`,
+        );
+      }
+    }
 
-    // ③ 序列化 @uiprop / @uiclick / @uitransition 绑定
+    // ③ 序列化装饰器绑定：@uiprop / @uicomponent / @uiclick / @uitransition
     PropsHelper.serializeProps(window);
 
     // ④ 初始化、适配
@@ -123,7 +142,7 @@ export class WindowGroup {
   }
 
   // ─────────────────────────────────────────────
-  //  内部：show 后的调整
+  //  内部：show 后的调整（与原版相同）
   // ─────────────────────────────────────────────
 
   private _showAdjustment(window: IWindow, userdata?: any): void {
@@ -144,16 +163,10 @@ export class WindowGroup {
       this._windowNames.splice(idx, 1);
       this._windowNames.push(window.name);
     }
-
     this._processWindowCloseStatus(window);
-    // 调整在父节点中的层级（最后渲染 = 最顶层）
     window.setDepth(this._root.children.length - 1);
     this._processWindowHideStatus(this.size - 1);
   }
-
-  // ─────────────────────────────────────────────
-  //  内部：隐藏/显示状态维护
-  // ─────────────────────────────────────────────
 
   private _processWindowHideStatus(startIndex: number): void {
     const curWin = WindowManager.getWindow(this._windowNames[startIndex]);
@@ -169,7 +182,6 @@ export class WindowGroup {
         console.error(`[BUG] 窗口【${this._windowNames[i]}】不存在`);
         return;
       }
-
       if (win.type === WindowType.HideAll) {
         for (let j = i - 1; j >= 0; j--) {
           const prev = WindowManager.getWindow(this._windowNames[j]);
@@ -229,7 +241,7 @@ export class WindowGroup {
   }
 
   // ─────────────────────────────────────────────
-  //  关闭
+  //  关闭（与原版相同，修复 return → continue）
   // ─────────────────────────────────────────────
 
   public removeWindow(name: string): void {
@@ -238,7 +250,6 @@ export class WindowGroup {
       console.error(`[BUG] 窗口【${name}】不存在`);
       return;
     }
-
     HeaderManager.releaseHeader(name);
     window._close();
 
@@ -265,7 +276,7 @@ export class WindowGroup {
       const win = WindowManager.getWindow<IWindow>(name);
       if (!win) {
         console.error(`[BUG] 窗口【${name}】不存在`);
-        return;
+        continue; // ← 原版是 return，此处修复为 continue
       }
       HeaderManager.releaseHeader(name);
       win._close();
