@@ -46,7 +46,8 @@ export class UIModule extends Module {
     const uiRootTf = uiRoot.addComponent(UITransform);
     const visSize = view.getVisibleSize();
     uiRootTf.setContentSize(visSize.width, visSize.height);
-    uiRoot.setPosition(visSize.width * 0.5, visSize.height * 0.5, 0);
+    // cocos creator 中坐标系远点在中心 所以不需要偏移
+    uiRoot.setPosition(0, 0, 0);
 
     // ── 创建半透明遮罩节点（替代原 GGraph）──────
     const overlayNode = new Node("bgAlpha");
