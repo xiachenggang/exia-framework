@@ -153,11 +153,26 @@ pnpm version:major
 ### 发布到 npm
 
 ```bash
-# 发布 bit-core
+# 发布 exia-core
 pnpm publish:core
 
-# 发布 bit-fgui
+# 发布 exia-fgui
 pnpm publish:fgui
+
+# 发布 exia-ccui
+pnpm publish:ccui
+
+# 发布 exia-net
+pnpm publish:net
+
+# 发布 exia-assets
+pnpm publish:assets
+
+# 发布 exia-data
+pnpm publish:data
+
+# 发布 exia-event
+pnpm publish:event
 
 # 注意：发布前需要：
 # 1. 确保已登录 npm: npm login
