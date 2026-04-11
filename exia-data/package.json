@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-data",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "轻量级数据系统，提供全局数据管理和数据组件",
   "main": "./dist/exia-data.cjs",
   "module": "./dist/exia-data.mjs",

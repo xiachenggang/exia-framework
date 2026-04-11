@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-assets",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "基于creator3.8.8+的exia-assets库",
   "main": "./dist/exia-assets.cjs",
   "module": "./dist/exia-assets.mjs",
