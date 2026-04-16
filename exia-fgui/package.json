@@ -1,6 +1,6 @@
 {
   "name": "@xiacg/exia-fgui",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "基于creator3.8.8+的exia-fgui库",
   "main": "./dist/exia-fgui.cjs",
   "module": "./dist/exia-fgui.mjs",
