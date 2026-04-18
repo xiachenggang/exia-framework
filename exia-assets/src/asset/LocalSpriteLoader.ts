@@ -1,7 +1,7 @@
 import { _decorator, Component, Sprite, SpriteFrame, SpriteAtlas } from 'cc';
 import { localRes } from './LocalResManager';
 
-const { ccclass, property, requireComponent } = _decorator;
+const { ccclass, property, menu,requireComponent } = _decorator;
 
 // ============================================================================
 //  LocalSpriteLoader（本地 resources 图片切换组件）
@@ -33,6 +33,7 @@ interface LocalSpriteHandle {
 
 @ccclass('LocalSpriteLoader')
 @requireComponent(Sprite)
+@menu("exia/LocalSpriteLoader")
 export class LocalSpriteLoader extends Component {
 
     // ---- 编辑器属性 ----

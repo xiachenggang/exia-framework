@@ -2,7 +2,7 @@ import { _decorator, Component } from 'cc';
 import { sp } from 'cc';
 import { remoteSpineManager, SpineLoadConfig, SpineHandle } from './RemoteSpineManager';
 
-const { ccclass, property, requireComponent } = _decorator;
+const { ccclass, property,menu, requireComponent } = _decorator;
 
 // ============================================================================
 //  第三层：RemoteSpineLoader（节点组件）
@@ -31,6 +31,7 @@ const { ccclass, property, requireComponent } = _decorator;
 
 @ccclass('RemoteSpineLoader')
 @requireComponent(sp.Skeleton)
+@menu("exia/RemoteSpineLoader")
 export class RemoteSpineLoader extends Component {
 
     // ---- 编辑器属性 ----

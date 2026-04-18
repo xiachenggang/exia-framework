@@ -2,7 +2,7 @@ import { _decorator, Component } from 'cc';
 import { sp } from 'cc';
 import { localRes } from './LocalResManager';
 
-const { ccclass, property, requireComponent } = _decorator;
+const { ccclass, property,menu, requireComponent } = _decorator;
 
 // ============================================================================
 //  LocalSpineLoader（本地 resources Spine 切换组件）
@@ -43,6 +43,7 @@ interface LocalSpineHandle {
 
 @ccclass('LocalSpineLoader')
 @requireComponent(sp.Skeleton)
+@menu("exia/LocalSpineLoader")
 export class LocalSpineLoader extends Component {
 
     // ---- 编辑器属性 ----

@@ -1,7 +1,7 @@
 import { _decorator, Component, Sprite, Color, UIOpacity } from 'cc';
 import { remoteSpriteManager, SpriteHandle } from './RemoteSpriteManager';
 
-const { ccclass, property, requireComponent } = _decorator;
+const { ccclass, property, menu,requireComponent } = _decorator;
 
 // ============================================================================
 //  第三层：RemoteSpriteLoader（节点组件）
@@ -31,6 +31,7 @@ const { ccclass, property, requireComponent } = _decorator;
 
 @ccclass('RemoteSpriteLoader')
 @requireComponent(Sprite)
+@menu("exia/RemoteSpriteLoader")
 export class RemoteSpriteLoader extends Component {
 
     // ---- 编辑器属性 ----
