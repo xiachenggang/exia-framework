@@ -1,5 +1,6 @@
 import { ImageAsset, SpriteFrame, Texture2D } from 'cc';
 import { remoteAssets, LoadOptions } from './RemoteAssetManager';
+import { RefCountCache, RefCountEntry } from '../core/RefCountCache';
 
 // ============================================================================
 //  第二层：RemoteSpriteManager（纹理池）
@@ -11,12 +12,10 @@ import { remoteAssets, LoadOptions } from './RemoteAssetManager';
 //    RemoteSpriteLoader  →  管理 SpriteFrame（每个节点独立持有）
 // ============================================================================
 
-/** 纹理池条目：ImageAsset + Texture2D 共享，多个 Sprite 复用 */
-interface TextureEntry {
+/** 纹理池条目 */
+interface TextureEntry extends RefCountEntry {
     texture: Texture2D;
     url: string;
-    /** 上层组件对此纹理的引用计数 */
-    refCount: number;
     createAt: number;
 }
 
@@ -24,7 +23,6 @@ interface TextureEntry {
 export interface SpriteHandle {
     url: string;
     spriteFrame: SpriteFrame;
-    /** 上层必须调用此方法释放 */
     release: () => void;
 }
 
@@ -37,25 +35,16 @@ class RemoteSpriteManager {
         return this._inst ??= new RemoteSpriteManager();
     }
 
-    /** url → 共享的 Texture2D 条目 */
-    private _texPool = new Map<string, TextureEntry>();
+    private _rc = new RefCountCache<TextureEntry>((key, entry) => {
+        if (entry.texture.isValid) {
+            entry.texture.destroy();
+        }
+    });
 
     private constructor() {}
 
     // ======================== 核心 API ========================
 
-    /**
-     * 获取远程图片的 SpriteFrame
-     *
-     * 内部流程：
-     *  1. 通过 RemoteAssetManager.load 获取 ImageAsset（享受去重/重试/缓存）
-     *  2. 查纹理池：有则复用 Texture2D，无则新建
-     *  3. 创建独立的 SpriteFrame 返回给调用者
-     *  4. 返回 SpriteHandle，内含一次性 release() 回调
-     *
-     * @param url    CDN 图片地址
-     * @param retry  可覆盖重试策略
-     */
     async acquire(url: string, retry?: LoadOptions['retry']): Promise<SpriteHandle> {
         const ext = RemoteSpriteManager._guessExt(url);
         const loadOpts: LoadOptions = { type: ImageAsset as any, ext, retry };
@@ -64,25 +53,27 @@ class RemoteSpriteManager {
         const imageAsset = await remoteAssets.load<ImageAsset>(url, loadOpts);
 
         // ② 获取或创建共享 Texture2D
-        let texEntry = this._texPool.get(url);
+        let texEntry = this._rc.getEntry(url);
         if (!texEntry || !texEntry.texture.isValid) {
+            if (texEntry) this._rc.delete(url);
             const texture = new Texture2D();
             texture.image = imageAsset;
             texEntry = {
-                texture,
-                url,
+                texture, url,
                 refCount: 0,
                 createAt: Date.now(),
+                lastAccessAt: Date.now(),
             };
-            this._texPool.set(url, texEntry);
+            this._rc.set(url, texEntry);
         }
         texEntry.refCount++;
+        texEntry.lastAccessAt = Date.now();
 
-        // ③ 每个调用者拥有独立的 SpriteFrame（轻量对象，几乎不占内存）
+        // ③ 每个调用者拥有独立的 SpriteFrame
         const spriteFrame = new SpriteFrame();
         spriteFrame.texture = texEntry.texture;
 
-        // ④ 构建句柄，release 只能调一次
+        // ④ 构建句柄
         let released = false;
         const handle: SpriteHandle = {
             url,
@@ -97,9 +88,6 @@ class RemoteSpriteManager {
         return handle;
     }
 
-    /**
-     * 批量获取
-     */
     async acquireBatch(
         urls: string[],
         onProgress?: (loaded: number, total: number) => void,
@@ -115,9 +103,6 @@ class RemoteSpriteManager {
         return Promise.all(tasks);
     }
 
-    /**
-     * 预热（加载到缓存但不占用纹理池引用）
-     */
     async preload(url: string): Promise<void> {
         const handle = await this.acquire(url);
         handle.release();
@@ -125,18 +110,15 @@ class RemoteSpriteManager {
 
     // ======================== 查询 ========================
 
-    /** 某 url 的 Texture2D 引用计数 */
     getTextureRefCount(url: string): number {
-        return this._texPool.get(url)?.refCount ?? 0;
+        return this._rc.getRefCount(url);
     }
 
-    /** 纹理池大小 */
-    get poolSize(): number { return this._texPool.size; }
+    get poolSize(): number { return this._rc.size; }
 
-    /** 打印池状态 */
     dump() {
         const rows: any[] = [];
-        this._texPool.forEach(e => rows.push({
+        this._rc.forEach(e => rows.push({
             url: e.url,
             texRef: e.refCount,
             assetRef: remoteAssets.getRefCount(e.url, { ext: RemoteSpriteManager._guessExt(e.url) }),
@@ -144,48 +126,26 @@ class RemoteSpriteManager {
         return rows;
     }
 
-    /** 强制清空纹理池 + 底层所有缓存 */
     purgeAll(): void {
-        this._texPool.forEach((entry, url) => {
-            if (entry.texture.isValid) entry.texture.destroy();
-        });
-        this._texPool.clear();
+        this._rc.releaseAll();
         remoteAssets.releaseAll();
     }
 
     // ======================== 内部 ========================
 
     /**
-     * 释放单个 SpriteFrame + 对应引用链
-     *
-     * 释放顺序（由外到内）：
+     * 释放链路（由外到内）：
      *  1. SpriteFrame.destroy()       — 调用者独有
      *  2. 纹理池 refCount--
-     *     → 归零则 Texture2D.destroy()  — 释放 GPU 显存
+     *     → 归零则 Texture2D.destroy() — 释放 GPU 显存
      *  3. RemoteAssetManager.release() — ImageAsset refCount--
-     *     → 归零则 decRef + releaseAsset
      */
     private _releaseOne(url: string, spriteFrame: SpriteFrame, loadOpts: LoadOptions): void {
-        // 1) 销毁调用者独有的 SpriteFrame
         if (spriteFrame.isValid) {
             spriteFrame.destroy();
         }
 
-        // 2) 纹理池引用 -1
-        const texEntry = this._texPool.get(url);
-        if (texEntry) {
-            texEntry.refCount = Math.max(0, texEntry.refCount - 1);
-
-            if (texEntry.refCount <= 0) {
-                // 没有任何 SpriteFrame 在用了 → 销毁 Texture2D
-                if (texEntry.texture.isValid) {
-                    texEntry.texture.destroy();
-                }
-                this._texPool.delete(url);
-            }
-        }
-
-        // 3) 底层 ImageAsset 引用 -1
+        this._rc.release(url);
         remoteAssets.release(url, loadOpts);
     }
 

@@ -31,5 +31,5 @@ export interface IWindow<TUserData = any, THeaderData = any> {
   setDepth(depth: number): void;
 
   getHeaderInfo(): HeaderInfo<any>;
-  refreshHeader(): void;
+  refreshHeader(): Promise<void>;
 }

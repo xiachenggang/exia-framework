@@ -16,11 +16,11 @@ export function createRollupConfig(packageName, external = ['cc']) {
     importHelpers: false,
     compilerOptions: {
       target: "es6",
-      module: "es6",
+      module: "ESNext",
       experimentalDecorators: true,
       strict: true,
       strictNullChecks: false,
-      moduleResolution: "Node",
+      moduleResolution: "bundler",
       skipLibCheck: true,
       esModuleInterop: true,
     }

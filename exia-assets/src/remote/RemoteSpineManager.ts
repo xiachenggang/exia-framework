@@ -1,6 +1,7 @@
 import { ImageAsset, Texture2D } from 'cc';
 import { sp } from 'cc';
 import { remoteAssets, LoadOptions, RetryPolicy } from './RemoteAssetManager';
+import { RefCountCache, RefCountEntry } from '../core/RefCountCache';
 
 // ============================================================================
 //  第二层：RemoteSpineManager（Spine 资源池）
@@ -22,35 +23,26 @@ import { remoteAssets, LoadOptions, RetryPolicy } from './RemoteAssetManager';
 
 /** Spine 加载配置 */
 export interface SpineLoadConfig {
-    /** 骨骼数据 URL (.json 或 .skel) */
     skelUrl: string;
-    /** Atlas 文件 URL，不传则自动从 skelUrl 推导 */
     atlasUrl?: string;
-    /** 纹理基础路径，不传则自动从 atlasUrl 推导 */
     textureBaseUrl?: string;
-    /** 重试策略覆盖 */
     retry?: Partial<RetryPolicy>;
-    /** 单文件超时 ms */
     timeout?: number;
 }
 
 /** acquire 返回给上层的句柄 */
 export interface SpineHandle {
-    /** 配置标识 */
     key: string;
-    /** 组装好的 SkeletonData，可直接赋给 sp.Skeleton.skeletonData */
     skeletonData: sp.SkeletonData;
-    /** 上层必须调用释放 */
     release: () => void;
 }
 
 /** 池中的共享条目 */
-interface SpinePoolEntry {
+interface SpinePoolEntry extends RefCountEntry {
     skeletonData: sp.SkeletonData;
     textures: Texture2D[];
-    imageAssetUrls: string[];       // 用于调用 remoteAssets.release
-    imageAssetExts: string[];       // 对应的 ext 参数
-    refCount: number;
+    imageAssetUrls: string[];
+    imageAssetExts: string[];
     createdAt: number;
 }
 
@@ -63,13 +55,25 @@ class RemoteSpineManager {
         return this._inst ??= new RemoteSpineManager();
     }
 
-    /** key → 共享的 SkeletonData 条目 */
-    private _pool = new Map<string, SpinePoolEntry>();
+    private _rc = new RefCountCache<SpinePoolEntry>((key, entry) => {
+        // 1) SkeletonData
+        if (entry.skeletonData.isValid) {
+            entry.skeletonData.destroy();
+        }
+        // 2) Texture2D → GPU 显存
+        entry.textures.forEach(tex => {
+            if (tex.isValid) tex.destroy();
+        });
+        // 3) ImageAsset → 通过 RemoteAssetManager 释放引用
+        entry.imageAssetUrls.forEach((url, i) => {
+            remoteAssets.release(url, {
+                type: ImageAsset as any,
+                ext: entry.imageAssetExts[i],
+            });
+        });
+        console.debug(`[RemoteSpineManager] 已释放: ${key} (${entry.textures.length} 张纹理)`);
+    });
 
-    /** key → 进行中的加载（去重） */
-    private _loading = new Map<string, Promise<SpinePoolEntry>>();
-
-    /** 默认重试配置（文本/二进制资源，图片走 RemoteAssetManager 自己的配置） */
     private _defaultRetry: RetryPolicy = { maxRetries: 3, baseDelay: 1000, maxDelay: 8000 };
     private _defaultTimeout = 20_000;
 
@@ -77,55 +81,34 @@ class RemoteSpineManager {
 
     // ======================== 核心 API ========================
 
-    /**
-     * 获取远程 Spine 资源
-     *
-     * 完整流程：
-     *  1. 检查池中是否已有 → refCount++ 直接返回
-     *  2. 检查是否正在加载 → 复用 Promise（去重）
-     *  3. 并行加载三类资源：
-     *     · skeleton JSON/Binary → 自带重试的 XHR
-     *     · atlas text           → 自带重试的 XHR
-     *     · textures (N 张)      → RemoteAssetManager（享受全部能力）
-     *  4. 解析 atlas 提取纹理文件名
-     *  5. 组装 sp.SkeletonData
-     *  6. 返回 SpineHandle（含一次性 release 回调）
-     */
     async acquire(config: SpineLoadConfig): Promise<SpineHandle> {
-        const key = this._makeKey(config);
+        const key = config.skelUrl;
 
         // ① 池命中
-        const cached = this._pool.get(key);
-        if (cached && cached.skeletonData.isValid) {
-            cached.refCount++;
-            return this._wrapHandle(key, cached);
-        }
-        if (cached) this._pool.delete(key);
+        const cached = this._rc.get(key, e => e.skeletonData.isValid);
+        if (cached) return this._wrapHandle(key, cached);
 
         // ② 去重
-        if (!this._loading.has(key)) {
-            this._loading.set(key, this._doLoad(config, key));
+        const pending = this._rc.getPending(key);
+        if (pending) {
+            const entry = await pending;
+            const resolved = this._rc.get(key, e => e.skeletonData.isValid);
+            if (resolved) return this._wrapHandle(key, resolved);
+            return this._wrapHandle(key, entry);
         }
 
+        // ③ 新请求
+        const promise = this._doLoad(config, key);
+        this._rc.setPending(key, promise);
+
         try {
-            const entry = await this._loading.get(key)!;
-            // 并发等待者补 refCount
-            if (this._pool.has(key)) {
-                const e = this._pool.get(key)!;
-                e.refCount++;
-                return this._wrapHandle(key, e);
-            }
-            // 首次完成者写入池
-            this._pool.set(key, entry);
+            const entry = await promise;
             return this._wrapHandle(key, entry);
         } finally {
-            this._loading.delete(key);
+            this._rc.deletePending(key);
         }
     }
 
-    /**
-     * 预加载（不占引用）
-     */
     async preload(config: SpineLoadConfig): Promise<void> {
         const handle = await this.acquire(config);
         handle.release();
@@ -134,14 +117,14 @@ class RemoteSpineManager {
     // ======================== 查询 ========================
 
     getRefCount(config: SpineLoadConfig): number {
-        return this._pool.get(this._makeKey(config))?.refCount ?? 0;
+        return this._rc.getRefCount(config.skelUrl);
     }
 
-    get poolSize(): number { return this._pool.size; }
+    get poolSize(): number { return this._rc.size; }
 
     dump() {
         const rows: any[] = [];
-        this._pool.forEach((e, k) => rows.push({
+        this._rc.forEach((e, k) => rows.push({
             key: k,
             ref: e.refCount,
             textures: e.textures.length,
@@ -149,21 +132,12 @@ class RemoteSpineManager {
         return rows;
     }
 
-    /** 强制清空全部 */
     purgeAll(): void {
-        this._pool.forEach((entry, key) => this._destroyEntry(key, entry));
-        this._pool.clear();
+        this._rc.releaseAll();
     }
 
     // ======================== 内部实现 ========================
 
-    private _makeKey(config: SpineLoadConfig): string {
-        return config.skelUrl;
-    }
-
-    /**
-     * 执行完整的三阶段加载
-     */
     private async _doLoad(config: SpineLoadConfig, key: string): Promise<SpinePoolEntry> {
         const retry: RetryPolicy = { ...this._defaultRetry, ...config.retry };
         const timeout = config.timeout ?? this._defaultTimeout;
@@ -199,7 +173,6 @@ class RemoteSpineManager {
             return '.png';
         });
 
-        // 并行加载，每张图独立享受 RemoteAssetManager 的去重/重试/缓存
         const imageAssets = await Promise.all(
             textureUrls.map((url, i) =>
                 remoteAssets.load<ImageAsset>(url, {
@@ -211,7 +184,6 @@ class RemoteSpineManager {
             ),
         );
 
-        // ImageAsset → Texture2D
         const textures = imageAssets.map(img => {
             const tex = new Texture2D();
             tex.image = img;
@@ -222,10 +194,8 @@ class RemoteSpineManager {
         const skeletonData = new sp.SkeletonData();
 
         if (isBinary) {
-            // 二进制 .skel
             (skeletonData as any)._nativeAsset = skelData as ArrayBuffer;
         } else {
-            // JSON
             skeletonData.skeletonJson = skelData as any;
         }
 
@@ -233,19 +203,19 @@ class RemoteSpineManager {
         skeletonData.textures = textures;
         skeletonData.textureNames = textureNames;
 
-        return {
+        const entry: SpinePoolEntry = {
             skeletonData,
             textures,
             imageAssetUrls: textureUrls,
             imageAssetExts,
             refCount: 1,
             createdAt: Date.now(),
+            lastAccessAt: Date.now(),
         };
+        this._rc.set(key, entry);
+        return entry;
     }
 
-    /**
-     * 包装为 SpineHandle（含一次性 release）
-     */
     private _wrapHandle(key: string, entry: SpinePoolEntry): SpineHandle {
         let released = false;
         return {
@@ -254,58 +224,13 @@ class RemoteSpineManager {
             release: () => {
                 if (released) return;
                 released = true;
-                this._releaseOne(key);
+                this._rc.release(key);
             },
         };
     }
 
-    /**
-     * ★ 释放链路 ★
-     *
-     * refCount-- → 归零后：
-     *  1. sp.SkeletonData.destroy()     ← 骨骼数据
-     *  2. Texture2D[].forEach(destroy)  ← GPU 显存
-     *  3. remoteAssets.release() × N    ← ImageAsset 引用计数
-     */
-    private _releaseOne(key: string): void {
-        const entry = this._pool.get(key);
-        if (!entry) return;
-
-        entry.refCount = Math.max(0, entry.refCount - 1);
-        if (entry.refCount <= 0) {
-            this._destroyEntry(key, entry);
-        }
-    }
-
-    private _destroyEntry(key: string, entry: SpinePoolEntry): void {
-        this._pool.delete(key);
-
-        // 1) SkeletonData
-        if (entry.skeletonData.isValid) {
-            entry.skeletonData.destroy();
-        }
-
-        // 2) Texture2D → GPU 显存
-        entry.textures.forEach(tex => {
-            if (tex.isValid) tex.destroy();
-        });
-
-        // 3) ImageAsset → 通过 RemoteAssetManager 释放引用
-        entry.imageAssetUrls.forEach((url, i) => {
-            remoteAssets.release(url, {
-                type: ImageAsset as any,
-                ext: entry.imageAssetExts[i],
-            });
-        });
-
-        console.debug(`[RemoteSpineManager] 已释放: ${key} (${entry.textures.length} 张纹理)`);
-    }
-
     // ======================== 网络工具 ========================
 
-    /**
-     * 带重试的 JSON 加载
-     */
     private async _fetchJson(
         url: string, retry: RetryPolicy, timeout: number,
     ): Promise<object> {
@@ -317,27 +242,18 @@ class RemoteSpineManager {
         }
     }
 
-    /**
-     * 带重试的文本加载
-     */
     private async _fetchText(
         url: string, retry: RetryPolicy, timeout: number,
     ): Promise<string> {
         return this._fetchWithRetry(url, 'text', retry, timeout) as Promise<string>;
     }
 
-    /**
-     * 带重试的二进制加载
-     */
     private async _fetchBinary(
         url: string, retry: RetryPolicy, timeout: number,
     ): Promise<ArrayBuffer> {
         return this._fetchWithRetry(url, 'arraybuffer', retry, timeout) as Promise<ArrayBuffer>;
     }
 
-    /**
-     * 通用 XHR 请求 + 指数退避重试
-     */
     private async _fetchWithRetry(
         url: string,
         responseType: XMLHttpRequestResponseType,
@@ -390,21 +306,6 @@ class RemoteSpineManager {
 
     // ======================== Atlas 解析 ========================
 
-    /**
-     * 从 atlas 文本中提取纹理页文件名
-     *
-     * 兼容 Spine 3.x 和 4.x atlas 格式：
-     *   - 非缩进行
-     *   - 不含冒号（排除 size: / filter: 等属性行）
-     *   - 以图片扩展名结尾
-     *
-     * 示例 atlas 片段：
-     *   hero.png              ← 匹配 ✓
-     *   size: 1024,1024       ← 不匹配（含冒号）
-     *   filter: Linear,Linear ← 不匹配（含冒号）
-     *     rotate: false       ← 不匹配（缩进）
-     *   hero2.png             ← 匹配 ✓
-     */
     static _parseAtlasPages(atlasText: string): string[] {
         const names: string[] = [];
         const seen = new Set<string>();
@@ -413,14 +314,8 @@ class RemoteSpineManager {
         for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
-
-            // 必须是非缩进行（原始行首字符不是空白）
             if (line[0] === ' ' || line[0] === '\t') continue;
-
-            // 排除属性行（含冒号）
             if (trimmed.includes(':')) continue;
-
-            // 以图片扩展名结尾
             if (/\.(png|jpe?g|webp|bmp|ktx|pvr|astc)$/i.test(trimmed)) {
                 if (!seen.has(trimmed)) {
                     seen.add(trimmed);

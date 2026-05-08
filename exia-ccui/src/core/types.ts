@@ -16,10 +16,16 @@ export interface IWindowInfo {
   inlinePrefabPaths: string[];
 }
 
-export interface IHeaderInfo {
+/** Bar 通用注册信息（Header / BottomBar 共用） */
+export interface IBarSlotInfo {
   ctor: any;
-  /** Header 预制体路径 */
+  /** 预制体路径 */
   prefabPath: string;
   /** 所在 bundle */
   bundleName: string;
 }
+
+/** @deprecated 请使用 IBarSlotInfo */
+export type IHeaderInfo = IBarSlotInfo;
+/** @deprecated 请使用 IBarSlotInfo */
+export type IBottomBarInfo = IBarSlotInfo;

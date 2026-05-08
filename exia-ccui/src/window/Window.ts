@@ -5,6 +5,7 @@
  * 业务代码只需实现 onInit / onClose / onShow 三个方法。
  */
 
+import { BottomBarInfo } from "./BottomBarInfo";
 import { HeaderInfo } from "./HeaderInfo";
 import { WindowBase } from "./WindowBase";
 
@@ -27,6 +28,14 @@ export abstract class Window<T = any, U = any> extends WindowBase<T, U> {
    * 覆写此方法并返回 HeaderInfo 实例即可启用 Header 复用。
    */
   public getHeaderInfo(): HeaderInfo<any> | null {
+    return null;
+  }
+
+  /**
+   * 返回 null 表示该窗口不使用底部 BottomBar。
+   * 覆写此方法并返回 BottomBarInfo 实例即可启用 BottomBar 复用。
+   */
+  public getBottomBarInfo(): BottomBarInfo<any> | null {
     return null;
   }
 }

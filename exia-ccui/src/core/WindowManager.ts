@@ -10,7 +10,7 @@ import { IWindow } from "../interface/IWindow";
 import { MetadataKey } from "../interface/type";
 import { Window } from "../window/Window";
 import { WindowBase } from "../window/WindowBase";
-import { HeaderManager } from "./HeaderManager";
+import { BarRegistry } from "./BarRegistry";
 import { InfoPool } from "./InfoPool";
 import { ResLoader } from "./ResLoader";
 import { WindowGroup } from "./WindowGroup";
@@ -86,8 +86,8 @@ export class WindowManager {
     }
     // 所有窗口适配
     this._windows.forEach((win) => win._adapted());
-    // 所有 Header 适配
-    HeaderManager.onScreenResize();
+    // 所有 Bar 适配（Header + BottomBar + 未来扩展）
+    BarRegistry.onScreenResize();
   }
 
   // ─────────────────────────────────────────────

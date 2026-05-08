@@ -1,4 +1,5 @@
 import { assetManager, Asset, ImageAsset, JsonAsset } from 'cc';
+import { RefCountCache, RefCountEntry } from '../core/RefCountCache';
 
 // ============================================================================
 //  第一层：RemoteAssetManager（网络 + 缓存层）
@@ -19,18 +20,11 @@ export interface LoadOptions {
     ext?: string;
 }
 
-interface CacheEntry {
+interface CacheEntry extends RefCountEntry {
     asset: Asset;
-    refCount: number;
     url: string;
     loadedAt: number;
-    lastAccessAt: number;
     size: number;
-}
-
-interface PendingRequest {
-    promise: Promise<Asset>;
-    callerCount: number;
 }
 
 // ============================================================================
@@ -42,8 +36,12 @@ class RemoteAssetManager {
         return this._inst ??= new RemoteAssetManager();
     }
 
-    private _cache = new Map<string, CacheEntry>();
-    private _pending = new Map<string, PendingRequest>();
+    private _rc = new RefCountCache<CacheEntry>((key, entry) => {
+        if (entry.asset.isValid) {
+            entry.asset.decRef();
+            assetManager.releaseAsset(entry.asset);
+        }
+    });
 
     private _defaultRetry: RetryPolicy = { maxRetries: 3, baseDelay: 1000, maxDelay: 10000 };
     private _defaultTimeout = 30_000;
@@ -65,112 +63,112 @@ class RemoteAssetManager {
 
     // ======================== 核心加载 ========================
 
-    /**
-     * 加载远程资源（唯一入口）
-     *
-     * 缓存命中  → refCount++ 直接返回
-     * 请求去重  → 复用进行中的 Promise，不发新请求
-     * 新请求    → 超时保护 + 指数退避重试
-     */
     async load<T extends Asset>(url: string, options?: LoadOptions): Promise<T> {
         const key = this._key(url, options);
 
         // ① 命中缓存
-        const cached = this._cache.get(key);
-        if (cached && cached.asset.isValid) {
-            cached.refCount++;
-            cached.lastAccessAt = Date.now();
-            return cached.asset as T;
-        }
-        if (cached) this._cache.delete(key);
+        const cached = this._rc.get(key, e => e.asset.isValid);
+        if (cached) return cached.asset as T;
 
-        // ② 去重——复用进行中的请求
-        const pending = this._pending.get(key);
+        // ② 去重
+        const pending = this._rc.getPending(key);
         if (pending) {
-            pending.callerCount++;
-            const asset = await pending.promise;
-            // 等待完成后还要给缓存条目补 refCount
-            const entry = this._cache.get(key);
-            if (entry) {
-                entry.refCount++;
-                entry.lastAccessAt = Date.now();
-            }
-            return asset as T;
+            const entry = await pending;
+            const resolved = this._rc.get(key, e => e.asset.isValid);
+            return (resolved?.asset ?? entry.asset) as T;
         }
 
         // ③ 发起新请求
         const promise = this._loadWithRetry<T>(url, key, options);
-        this._pending.set(key, { promise: promise as Promise<Asset>, callerCount: 1 });
+        this._rc.setPending(key, promise as Promise<CacheEntry>);
 
         try {
-            return await promise;
+            const entry = await promise;
+            return entry.asset as T;
         } finally {
-            this._pending.delete(key);
+            this._rc.deletePending(key);
         }
     }
 
     // ======================== 引用管理 ========================
 
-    /** 手动增加引用（不触发加载） */
     addRef(url: string, options?: LoadOptions): boolean {
-        const e = this._cache.get(this._key(url, options));
-        if (e && e.asset.isValid) { e.refCount++; e.lastAccessAt = Date.now(); return true; }
-        return false;
+        const entry = this._rc.get(this._key(url, options), e => e.asset.isValid);
+        return !!entry;
     }
 
-    /** 减少引用，归零时释放底层 Asset */
     release(url: string, options?: LoadOptions): void {
-        const key = this._key(url, options);
-        const e = this._cache.get(key);
-        if (!e) return;
-        e.refCount = Math.max(0, e.refCount - 1);
-        if (e.refCount <= 0) this._destroy(key, e);
+        this._rc.release(this._key(url, options));
     }
 
-    /** 强制释放（忽略引用计数） */
     forceRelease(url: string, options?: LoadOptions): void {
-        const key = this._key(url, options);
-        const e = this._cache.get(key);
-        if (e) this._destroy(key, e);
+        this._rc.forceRelease(this._key(url, options));
     }
 
-    /** 释放全部缓存 */
     releaseAll(): void {
-        this._cache.forEach((e, k) => this._destroy(k, e));
+        this._rc.releaseAll();
     }
 
-    /** 释放空闲超过指定时长且 refCount=0 的条目 */
     releaseIdle(maxIdleMs: number): void {
-        const now = Date.now();
-        const keys: string[] = [];
-        this._cache.forEach((e, k) => {
-            if (e.refCount <= 0 && now - e.lastAccessAt > maxIdleMs) keys.push(k);
-        });
-        keys.forEach(k => { const e = this._cache.get(k); if (e) this._destroy(k, e); });
+        this._rc.releaseIdle(maxIdleMs);
+    }
+
+    // ======================== 批量加载 ========================
+
+    /**
+     * 批量加载远程资源（并行，单个失败不影响其他）
+     */
+    async loadBatch<T extends Asset>(
+        tasks: Array<{ url: string; options?: LoadOptions }>,
+        onProgress?: (done: number, total: number) => void,
+    ): Promise<Map<string, T>> {
+        const results = new Map<string, T>();
+        let done = 0;
+        const total = tasks.length;
+
+        await Promise.all(tasks.map(async (task) => {
+            try {
+                const asset = await this.load<T>(task.url, task.options);
+                results.set(task.url, asset);
+            } catch (e) {
+                console.error(`[RemoteAssetMgr] 批量加载失败: ${task.url}`, e);
+            } finally {
+                done++;
+                onProgress?.(done, total);
+            }
+        }));
+
+        return results;
+    }
+
+    /** 批量释放 */
+    releaseBatch(tasks: Array<{ url: string; options?: LoadOptions }>): void {
+        for (const { url, options } of tasks) {
+            this.release(url, options);
+        }
     }
 
     // ======================== 查询 ========================
 
     has(url: string, opts?: LoadOptions): boolean {
-        const e = this._cache.get(this._key(url, opts));
-        return !!e && e.asset.isValid;
+        const entry = this._rc.getEntry(this._key(url, opts));
+        return !!entry && entry.asset.isValid;
     }
 
     isLoading(url: string, opts?: LoadOptions): boolean {
-        return this._pending.has(this._key(url, opts));
+        return !!this._rc.getPending(this._key(url, opts));
     }
 
     getRefCount(url: string, opts?: LoadOptions): number {
-        return this._cache.get(this._key(url, opts))?.refCount ?? 0;
+        return this._rc.getRefCount(this._key(url, opts));
     }
 
-    get cacheCount() { return this._cache.size; }
-    get pendingCount() { return this._pending.size; }
+    get cacheCount() { return this._rc.size; }
 
     dump() {
         const now = Date.now();
         const rows: any[] = [];
-        this._cache.forEach(e => rows.push({
+        this._rc.forEach(e => rows.push({
             url: e.url, ref: e.refCount,
             sizeKB: +(e.size / 1024).toFixed(1),
             idleSec: +((now - e.lastAccessAt) / 1000).toFixed(1),
@@ -180,14 +178,13 @@ class RemoteAssetManager {
 
     // ======================== 内部实现 ========================
 
-    /** 缓存 key = url + type + ext */
     _key(url: string, opts?: LoadOptions): string {
         return `${url}|${opts?.type?.name ?? ''}|${opts?.ext ?? ''}`;
     }
 
     private async _loadWithRetry<T extends Asset>(
         url: string, cacheKey: string, opts?: LoadOptions,
-    ): Promise<T> {
+    ): Promise<CacheEntry> {
         const retry: RetryPolicy = { ...this._defaultRetry, ...opts?.retry };
         const timeout = opts?.timeout ?? this._defaultTimeout;
         let lastErr: Error | null = null;
@@ -201,16 +198,16 @@ class RemoteAssetManager {
             }
             try {
                 const asset = await this._loadOnce<T>(url, opts, timeout);
-                // 写入缓存，首次调用者 refCount = 1
-                this._cache.set(cacheKey, {
+                const entry: CacheEntry = {
                     asset, url,
                     refCount: 1,
                     loadedAt: Date.now(),
                     lastAccessAt: Date.now(),
                     size: this._estimateSize(asset),
-                });
+                };
+                this._rc.set(cacheKey, entry);
                 if (this._maxCacheSize > 0) this._evictLRU();
-                return asset;
+                return entry;
             } catch (e: any) {
                 lastErr = e instanceof Error ? e : new Error(String(e));
             }
@@ -248,25 +245,20 @@ class RemoteAssetManager {
     private _evictLRU(): void {
         if (this._maxCacheSize <= 0) return;
         let total = 0;
-        this._cache.forEach(e => total += e.size);
+        this._rc.forEach(e => total += e.size);
         if (total <= this._maxCacheSize) return;
 
         const list: { key: string; entry: CacheEntry }[] = [];
-        this._cache.forEach((e, k) => { if (e.refCount <= 0) list.push({ key: k, entry: e }); });
+        this._rc.forEach((e, k) => { if (e.refCount <= 0) list.push({ key: k, entry: e }); });
         list.sort((a, b) => a.entry.lastAccessAt - b.entry.lastAccessAt);
 
-        for (const { key, entry } of list) {
+        for (const { key } of list) {
             if (total <= this._maxCacheSize) break;
-            total -= entry.size;
-            this._destroy(key, entry);
-        }
-    }
-
-    private _destroy(key: string, entry: CacheEntry): void {
-        this._cache.delete(key);
-        if (entry.asset.isValid) {
-            entry.asset.decRef();
-            assetManager.releaseAsset(entry.asset);
+            const entry = this._rc.getEntry(key);
+            if (entry) {
+                total -= entry.size;
+                this._rc.forceRelease(key);
+            }
         }
     }
 }

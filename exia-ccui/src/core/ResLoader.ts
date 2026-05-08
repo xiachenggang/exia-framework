@@ -1,12 +1,5 @@
 /**
  * @Description: 资源加载器（Cocos assetManager 加载 Prefab）
- *
- * 主要变化：
- *  - loadWindowRes  → 加载 Prefab 资产并缓存到 InfoPool
- *  - unloadWindowRes → 引用计数归零时 assetManager.releaseAsset
- *  - 保留并发防重机制（loadingPromises Map）
- *  - 保留等待窗口引用计数（showWaitWindow / hideWaitWindow）
- *  - 保留 bundle 懒加载逻辑
  */
 
 import { assetManager, Prefab, resources } from "cc";
@@ -19,6 +12,8 @@ export class ResLoader {
   private static pathRefs = new Map<string, number>();
   /** @internal 正在加载的 Promise（防并发重复加载） */
   private static loadingPromises = new Map<string, Promise<void>>();
+  /** @internal Bar 加载防并发 Promise：slot → (barName → Promise) */
+  private static barLoadingPromises = new Map<string, Map<string, Promise<void>>>();
   /** @internal 是否自动释放 */
   private static autoRelease = true;
 
@@ -47,7 +42,7 @@ export class ResLoader {
   }
 
   // ─────────────────────────────────────────────
-  //  对外接口
+  //  窗口资源
   // ─────────────────────────────────────────────
 
   /**
@@ -68,7 +63,6 @@ export class ResLoader {
     const paths = InfoPool.getWindowPrefabPaths(windowName);
     for (const path of paths) {
       if (this._subRef(path) === 0) {
-        // 释放主预制体资产
         const info = InfoPool.get(windowName);
         if (path === info.prefabPath) {
           const prefab = InfoPool.getCachedPrefab(windowName);
@@ -81,6 +75,103 @@ export class ResLoader {
       }
     }
   }
+
+  // ─────────────────────────────────────────────
+  //  Bar 通用资源（slot 驱动）
+  // ─────────────────────────────────────────────
+
+  private static _getBarLoadingMap(slot: string): Map<string, Promise<void>> {
+    let map = this.barLoadingPromises.get(slot);
+    if (!map) {
+      map = new Map();
+      this.barLoadingPromises.set(slot, map);
+    }
+    return map;
+  }
+
+  /**
+   * 加载 Bar 对应的 Prefab，并缓存到 InfoPool 的 bar prefab cache。
+   * 多个窗口共享同一 Bar 时，第二次起直接命中缓存仅增引用计数。
+   */
+  static async loadBarRes(
+    slot: string,
+    barName: string,
+    windowName: string,
+  ): Promise<void> {
+    const info = InfoPool.getBar(slot, barName);
+    if (!info.prefabPath) return;
+
+    if (InfoPool.getCachedBarPrefab(slot, barName)) {
+      this._addRef(info.prefabPath);
+      return;
+    }
+
+    const loadingMap = this._getBarLoadingMap(slot);
+    const pending = loadingMap.get(barName);
+    if (pending) {
+      await pending;
+      this._addRef(info.prefabPath);
+      return;
+    }
+
+    const promise = (async () => {
+      this._addWaitRef();
+      try {
+        await this._loadBundles([info.bundleName], windowName);
+        const prefab = await this._loadSinglePrefab(
+          info.prefabPath,
+          info.bundleName,
+          windowName,
+        );
+        InfoPool.cacheBarPrefab(slot, barName, prefab);
+        this._addRef(info.prefabPath);
+      } finally {
+        this._decWaitRef();
+        loadingMap.delete(barName);
+      }
+    })();
+
+    loadingMap.set(barName, promise);
+    await promise;
+  }
+
+  /**
+   * 卸载 Bar 关联的 Prefab 资产（引用计数归零时才真正释放）。
+   */
+  static unloadBarRes(slot: string, barName: string): void {
+    if (!this.autoRelease) return;
+    if (!InfoPool.hasBar(slot, barName)) return;
+    const info = InfoPool.getBar(slot, barName);
+    if (!info.prefabPath) return;
+
+    if (this._subRef(info.prefabPath) === 0) {
+      const prefab = InfoPool.getCachedBarPrefab(slot, barName);
+      if (prefab) {
+        assetManager.releaseAsset(prefab);
+        InfoPool.removeCachedBarPrefab(slot, barName);
+      }
+      this.pathRefs.delete(info.prefabPath);
+    }
+  }
+
+  // ── 便利方法（兼容旧调用）──
+
+  static async loadHeaderRes(headerName: string, windowName: string): Promise<void> {
+    return this.loadBarRes("Header", headerName, windowName);
+  }
+  static unloadHeaderRes(headerName: string): void {
+    this.unloadBarRes("Header", headerName);
+  }
+  static async loadBottomBarRes(bottomBarName: string, windowName: string): Promise<void> {
+    return this.loadBarRes("BottomBar", bottomBarName, windowName);
+  }
+  static unloadBottomBarRes(bottomBarName: string): void {
+    this.unloadBarRes("BottomBar", bottomBarName);
+  }
+
+  // ─────────────────────────────────────────────
+  //  其他
+  // ─────────────────────────────────────────────
 
   /** 释放所有引用计数 ≤ 0 的资产 */
   static releaseUnusedRes(): void {
@@ -97,7 +188,6 @@ export class ResLoader {
     paths: string[],
     windowName: string,
   ): Promise<void> {
-    // 等待同路径正在进行的加载
     const pending: Promise<void>[] = [];
     for (const p of paths) {
       const pr = this.loadingPromises.get(p);
@@ -105,10 +195,8 @@ export class ResLoader {
     }
     if (pending.length > 0) await Promise.all(pending);
 
-    // 只加载引用计数为 0 的路径
     const toLoad = paths.filter((p) => this._getRef(p) <= 0);
     if (toLoad.length === 0) {
-      // 全部已缓存，只增加引用计数
       paths.forEach((p) => this._addRef(p));
       return;
     }
@@ -120,7 +208,6 @@ export class ResLoader {
       try {
         const info = InfoPool.get(windowName);
 
-        // 收集需要加载的 bundle 名
         const bundles = [
           ...new Set(
             toLoad.map((p) => InfoPool.getBundleName(p, info.bundleName)),
@@ -128,7 +215,6 @@ export class ResLoader {
         ];
         await this._loadBundles(bundles, windowName);
 
-        // 顺序加载每个预制体
         for (const path of toLoad) {
           const bundleName = InfoPool.getBundleName(path, info.bundleName);
           const prefab = await this._loadSinglePrefab(
@@ -136,7 +222,6 @@ export class ResLoader {
             bundleName,
             windowName,
           );
-          // 缓存主预制体
           if (path === info.prefabPath) {
             InfoPool.cachePrefab(windowName, prefab);
           }
@@ -147,7 +232,6 @@ export class ResLoader {
         paths.forEach((p) => this._addRef(p));
       } catch (err) {
         this._decWaitRef();
-        // 回滚已加载的资产
         for (const path of loaded) {
           const prefab = InfoPool.getCachedPrefab(windowName);
           if (prefab) {
@@ -165,9 +249,6 @@ export class ResLoader {
     await promise;
   }
 
-  /**
-   * 懒加载 bundle（已加载的跳过）
-   */
   private static async _loadBundles(
     bundleNames: string[],
     windowName: string,
@@ -189,12 +270,6 @@ export class ResLoader {
     }
   }
 
-  /**
-   * 加载单个 Prefab 资产
-   * @param path       bundle 内路径（不含扩展名）
-   * @param bundleName 所在 bundle
-   * @param windowName 用于失败回调
-   */
   private static _loadSinglePrefab(
     path: string,
     bundleName: string,

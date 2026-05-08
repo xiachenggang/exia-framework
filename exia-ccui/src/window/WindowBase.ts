@@ -4,10 +4,12 @@
 
 import { Screen } from "@xiacg/exia-core";
 import { BlockInputEvents, Component, Node, UITransform, view } from "cc";
-import { HeaderManager } from "../core/HeaderManager";
+import { BarRegistry } from "../core/BarRegistry";
 import { WindowManager } from "../core/WindowManager";
 import { IWindow } from "../interface/IWindow";
 import { AdapterType, WindowType } from "../interface/type";
+import { BarInfo } from "./BarInfo";
+import { BottomBarInfo } from "./BottomBarInfo";
 import { HeaderInfo } from "./HeaderInfo";
 
 export abstract class WindowBase<T = any, U = any>
@@ -190,6 +192,27 @@ export abstract class WindowBase<T = any, U = any>
   }
 
   // ─────────────────────────────────────────────
+  //  Bar 路由（供 BarRegistry.requestAll 使用）
+  // ─────────────────────────────────────────────
+
+  /**
+   * 根据插槽类型返回对应的 BarInfo
+   * BarRegistry.requestAll 调用此方法以统一获取各 slot 的 info。
+   * 子类无需覆盖此方法，只需实现 getHeaderInfo / getBottomBarInfo。
+   * 若未来新增 Bar 类型（如 SideBar），在此添加 case 即可。
+   */
+  public getBarInfo(slotKey: string): BarInfo<any> | null {
+    switch (slotKey) {
+      case "Header":
+        return this.getHeaderInfo();
+      case "BottomBar":
+        return this.getBottomBarInfo();
+      default:
+        return null;
+    }
+  }
+
+  // ─────────────────────────────────────────────
   //  Header 相关
   // ─────────────────────────────────────────────
 
@@ -199,8 +222,22 @@ export abstract class WindowBase<T = any, U = any>
    * 刷新/切换顶部 Header
    * 在同一窗口需要显示不同 Header 时调用（如 Tab 切换）
    */
-  public refreshHeader(): void {
-    HeaderManager.refreshWindowHeader(this.name, this.getHeaderInfo());
+  public async refreshHeader(): Promise<void> {
+    await BarRegistry.get("Header").refreshWindow(this.name, this.getHeaderInfo());
+  }
+
+  // ─────────────────────────────────────────────
+  //  BottomBar 相关
+  // ─────────────────────────────────────────────
+
+  public abstract getBottomBarInfo(): BottomBarInfo<any> | null;
+
+  /**
+   * 刷新/切换底部 BottomBar
+   * 在同一窗口需要显示不同 BottomBar 时调用（如 Tab 切换）
+   */
+  public async refreshBottomBar(): Promise<void> {
+    await BarRegistry.get("BottomBar").refreshWindow(this.name, this.getBottomBarInfo());
   }
 
   // ─────────────────────────────────────────────

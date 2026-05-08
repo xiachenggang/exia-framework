@@ -1,12 +1,17 @@
-export { AssetLoader } from "./asset/AssetLoader";
-export { AssetPool } from "./asset/AssetPool";
-export { AssetUtils } from "./asset/AssetUtils";
-export { ErrorCode, IAssetConfig } from "./asset/header";
-export { RemoteAssetManager } from "./asset/RemoteAssetManager";
-export { RemoteSpriteLoader } from "./asset/RemoteSpriteLoader";
-export { RemoteSpineLoader } from "./asset/RemoteSpineLoader";
-export { RemoteSpriteManager } from "./asset/RemoteSpriteManager";
-export { RemoteSpineManager } from "./asset/RemoteSpineManager";
-export {LocalResManager} from "./asset/LocalResManager";
-export {LocalSpineLoader} from "./asset/LocalSpineLoader";
-export {LocalSpriteLoader} from "./asset/LocalSpriteLoader";
+// core
+export { RefCountCache, RefCountEntry } from "./core/RefCountCache";
+export { BaseAssetLoader, Releasable } from "./core/BaseAssetLoader";
+export { BundleManager } from "./core/BundleManager";
+
+// local
+export { LocalResManager } from "./local/LocalResManager";
+export { LocalSpriteLoader } from "./local/LocalSpriteLoader";
+export { LocalSpineLoader } from "./local/LocalSpineLoader";
+
+// remote
+export { RemoteAssetManager } from "./remote/RemoteAssetManager";
+export { RemoteSpriteManager } from "./remote/RemoteSpriteManager";
+export { RemoteSpriteLoader } from "./remote/RemoteSpriteLoader";
+export { RemoteSpineManager } from "./remote/RemoteSpineManager";
+export { RemoteSpineLoader } from "./remote/RemoteSpineLoader";
+export { RemoteLoader } from "./remote/RemoteLoader";

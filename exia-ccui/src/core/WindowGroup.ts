@@ -11,7 +11,7 @@ import { instantiate, Node } from "cc";
 import { IWindow } from "../interface/IWindow";
 import { WindowType } from "../interface/type";
 import { WindowBase } from "../window/WindowBase";
-import { HeaderManager } from "./HeaderManager";
+import { BarRegistry } from "./BarRegistry";
 import { InfoPool } from "./InfoPool";
 import { PropsHelper } from "./PropsHelper";
 import { ResLoader } from "./ResLoader";
@@ -75,7 +75,7 @@ export class WindowGroup {
 
     try {
       await ResLoader.loadWindowRes(info.name);
-      const win = this._createWindow(info.name);
+      const win = await this._createWindow(info.name);
       this._showAdjustment(win, userdata);
       if (lastTop && lastTop.name !== win.name) {
         lastTop._toBottom();
@@ -90,7 +90,7 @@ export class WindowGroup {
   //  内部：创建窗口（核心改动在此）
   // ─────────────────────────────────────────────
 
-  private _createWindow(name: string): WindowBase {
+  private async _createWindow(name: string): Promise<WindowBase> {
     const prefab = InfoPool.getCachedPrefab(name);
     if (!prefab)
       throw new Error(`窗口【${name}】预制体未缓存，请先调用 loadWindowRes`);
@@ -135,8 +135,8 @@ export class WindowGroup {
     this._windowNames.push(name);
     WindowManager.addWindow(name, window);
 
-    // ⑥ 请求 Header
-    HeaderManager.requestHeader(name, window.getHeaderInfo());
+    // ⑥ 请求所有 Bar（Header + BottomBar + 未来扩展）
+    await BarRegistry.requestAll(name, (slotKey) => window!.getBarInfo(slotKey));
 
     return window;
   }
@@ -148,7 +148,7 @@ export class WindowGroup {
   private _showAdjustment(window: IWindow, userdata?: any): void {
     this._moveWindowToTop(window);
     window._show(userdata);
-    HeaderManager.showHeader(window.name);
+    BarRegistry.showAll(window.name);
     WindowManager.adjustAlphaGraph();
   }
 
@@ -172,7 +172,7 @@ export class WindowGroup {
     const curWin = WindowManager.getWindow(this._windowNames[startIndex]);
     if (curWin && startIndex === this.size - 1 && !curWin.isShowing()) {
       curWin._showFromHide();
-      HeaderManager.showHeader(curWin.name);
+      BarRegistry.showAll(curWin.name);
     }
     if (startIndex <= 0) return;
 
@@ -187,7 +187,7 @@ export class WindowGroup {
           const prev = WindowManager.getWindow(this._windowNames[j]);
           if (prev?.isShowing()) {
             prev._hide();
-            HeaderManager.hideHeader(prev.name);
+            BarRegistry.hideAll(prev.name);
           }
         }
         break;
@@ -195,13 +195,13 @@ export class WindowGroup {
         const prev = WindowManager.getWindow(this._windowNames[i - 1]);
         if (prev?.isShowing()) {
           prev._hide();
-          HeaderManager.hideHeader(prev.name);
+          BarRegistry.hideAll(prev.name);
         }
       } else {
         const prev = WindowManager.getWindow(this._windowNames[i - 1]);
         if (prev && !prev.isShowing()) {
           prev._showFromHide();
-          HeaderManager.showHeader(prev.name);
+          BarRegistry.showAll(prev.name);
         }
       }
     }
@@ -217,7 +217,7 @@ export class WindowGroup {
         console.error(`[BUG] 窗口【${name}】不存在`);
         return;
       }
-      HeaderManager.releaseHeader(name);
+      BarRegistry.releaseAll(name);
       win._close();
       WindowManager.removeWindow(name);
     } else if (window.type === WindowType.CloseAll) {
@@ -229,7 +229,7 @@ export class WindowGroup {
           continue;
         }
         try {
-          HeaderManager.releaseHeader(name);
+          BarRegistry.releaseAll(name);
           win._close();
           WindowManager.removeWindow(name);
         } catch (e) {
@@ -250,7 +250,7 @@ export class WindowGroup {
       console.error(`[BUG] 窗口【${name}】不存在`);
       return;
     }
-    HeaderManager.releaseHeader(name);
+    BarRegistry.releaseAll(name);
     window._close();
 
     const idx = this._windowNames.lastIndexOf(name);
@@ -278,7 +278,7 @@ export class WindowGroup {
         console.error(`[BUG] 窗口【${name}】不存在`);
         continue; // ← 原版是 return，此处修复为 continue
       }
-      HeaderManager.releaseHeader(name);
+      BarRegistry.releaseAll(name);
       win._close();
       WindowManager.removeWindow(name);
       this._windowNames.splice(i, 1);
